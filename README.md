@@ -37,7 +37,7 @@ npm.cmd run build
 npm.cmd start
 ```
 
-Startup creates required indexes without dropping existing indexes or documents. `npm.cmd run db:indexes` performs the same additive index step explicitly. An index conflict fails startup and requires review; it never deletes conflicting records. Run backend commands from `backend/` so the local environment and OpenAPI document can be loaded. `npm start` uses the root `server.js` entry point after compilation.
+Startup creates required indexes without dropping existing indexes or documents. `npm.cmd run db:indexes` performs the same additive index step explicitly. An index conflict fails startup and requires review; it never deletes conflicting records. Run backend commands from the repository root so the local environment and OpenAPI document can be loaded. `npm start` uses the root `server.js` entry point after compilation.
 
 Check `http://127.0.0.1:5000/health`. Login through `POST /api/v1/auth/login`; send the returned token as `Authorization: Bearer <token>` on all business endpoints. Tokens expire after eight hours. Login is rate limited. The local bootstrap command is the only account-creation mechanism. Each owner is an isolated business; multi-user business membership is outside this initial scope.
 
