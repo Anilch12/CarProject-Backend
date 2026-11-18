@@ -1,0 +1,114 @@
+@base = http://127.0.0.1:5000/api/v1
+@token = paste-login-token
+@customerId = paste-customer-id
+@vehicleId = paste-vehicle-id
+@tripId = paste-trip-id
+@paymentId = paste-payment-id
+@importId = paste-preview-id
+
+### Health
+GET {{base}}/health
+
+### Login with your bootstrapped credentials
+POST {{base}}/auth/login
+Content-Type: application/json
+
+{"email":"your-email@example.com","password":"your-own-password"}
+
+### Create a customer; identical names are allowed
+POST {{base}}/customers
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"name":"Example Customer","notes":"Synthetic example"}
+
+### Create a vehicle
+POST {{base}}/vehicles
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"registrationNumber":"AP 07 AB 1234","displayName":"Example sedan","isActive":true}
+
+### Create a 2,000 rupee trip
+POST {{base}}/trips
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"customerId":"{{customerId}}","vehicleId":"{{vehicleId}}","routeName":"Example local trip","startAt":"2026-11-02T09:00:00+05:30","endAt":"2026-11-02T18:00:00+05:30","billingUnit":"fixed","totalAmountPaise":200000,"status":"booked"}
+
+### Record an 800 rupee advance; retry with the identical key and body
+POST {{base}}/trips/{{tripId}}/payments
+Authorization: Bearer {{token}}
+Idempotency-Key: example-advance-001
+Content-Type: application/json
+
+{"amountPaise":80000,"purpose":"advance","method":"upi","paidAt":"2026-11-01T10:00:00+05:30","reference":"example-receipt-001"}
+
+### Record the remaining 1,200 rupees
+POST {{base}}/trips/{{tripId}}/payments
+Authorization: Bearer {{token}}
+Idempotency-Key: example-final-001
+Content-Type: application/json
+
+{"amountPaise":120000,"purpose":"final","method":"cash","paidAt":"2026-11-02T18:00:00+05:30"}
+
+### Trip detail includes calculated totals, payments and audit
+GET {{base}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
+
+### Bounded filtered list
+GET {{base}}/trips?from=2026-11-01&to=2026-11-30&paymentStatus=paid&page=1&pageSize=20
+Authorization: Bearer {{token}}
+
+### Complete the trip independently of payment status
+PATCH {{base}}/trips/{{tripId}}
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"status":"completed","changeReason":"Journey completed and reviewed"}
+
+### Correct a mistaken payment entry; not a refund
+POST {{base}}/trips/{{tripId}}/payments/{{paymentId}}/void
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{"reason":"Entry was duplicated in the source receipt book"}
+
+### Reporting period uses inclusive Kolkata calendar dates
+GET {{base}}/dashboard/summary?from=2026-11-01&to=2026-11-30
+Authorization: Bearer {{token}}
+
+### Preview the original workbook; creates review metadata only
+POST {{base}}/imports/preview
+Authorization: Bearer {{token}}
+Content-Type: multipart/form-data; boundary=WorkbookBoundary
+
+--WorkbookBoundary
+Content-Disposition: form-data; name="file"; filename="Book1 - Updated.xlsx"
+Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+
+< ./Book1 - Updated.xlsx
+--WorkbookBoundary--
+
+### Review persisted issues and proposed rows
+GET {{base}}/imports/{{importId}}
+Authorization: Bearer {{token}}
+
+### Commit ONLY after replacing these example values with verified resolutions
+# This is an illustrative row 12 resolution. Customer/vehicle/billing/timestamps
+# require your explicit confirmation. Unknown receipt dates remain unknown.
+POST {{base}}/imports/{{importId}}/commit
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "rows": [{
+    "sheet":"Sheet1", "rowNumber":12, "reviewed":true,
+    "reviewNote":"Separate advance and final receipt confirmed. Vehicle, billing and timestamps reviewed. Receipt dates and methods are unknown.",
+    "trip":{"customerId":"{{customerId}}","vehicleId":"{{vehicleId}}","routeName":"vadapaalli","startAt":"2026-09-12T02:00:00+05:30","endAt":"2026-09-12T15:00:00+05:30","billingUnit":"fixed","totalAmountPaise":200000,"status":"completed"},
+    "payments":[
+      {"amountPaise":80000,"purpose":"advance","method":"unknown","paidAt":null},
+      {"amountPaise":120000,"purpose":"final","method":"unknown","paidAt":null}
+    ]
+  }]
+}

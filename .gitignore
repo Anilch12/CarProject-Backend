@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+coverage/
+*.log
+Book1 - Updated.xlsx
+docs/workbook-review.md
