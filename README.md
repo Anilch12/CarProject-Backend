@@ -43,6 +43,38 @@ Check `http://127.0.0.1:5000/health`. Login through `POST /api/v1/auth/login`; s
 
 ## Render backend setup
 
+### Fix an existing service that fails with `JWT_SECRET` undefined
+
+The build succeeds, but startup requires a private signing secret. Your local `.env` is excluded from Git and is not uploaded to Render.
+
+1. Generate a secret on your computer:
+
+   ```powershell
+   node -e "console.log(require('node:crypto').randomBytes(48).toString('hex'))"
+   ```
+
+2. Open the existing Render service, select **Environment**, and add these environment variables:
+
+   | Key | Value |
+   | --- | --- |
+   | `JWT_SECRET` | The generated value (at least 32 random characters) |
+   | `MONGODB_URI` | Your hosted MongoDB connection string, including database credentials and database name |
+   | `NODE_ENV` | `production` |
+
+3. Choose **Save and deploy**. After startup, check `https://<your-service>.onrender.com/health`.
+
+Keep the secret private and stable across deployments; changing it invalidates existing login tokens. Production startup requires an explicit `MONGODB_URI` instead of falling back to the development database. Ensure the hosted database allows connections from your Render service.
+
+See [Render environment variables](https://render.com/docs/configure-environment-variables) for the dashboard workflow.
+
+### New service using a Blueprint
+
+The repository includes [render.yaml](render.yaml). Create a Render **Blueprint** from this repository to apply it. Render generates `JWT_SECRET` securely and prompts for your hosted `MONGODB_URI`. This file does not configure an existing manually created Web Service automatically; use the steps above for that service.
+
+See [Render Blueprint secrets](https://render.com/docs/blueprint-spec#generating-random-secrets) for automatic secret generation.
+
+### Manual service settings
+
 Create a Node.js Web Service with these settings:
 
 - Root Directory: repository root (leave blank)
