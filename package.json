@@ -44,5 +44,9 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "write-excel-file": "^4.1.1"
+  },
+  "allowScripts": {
+    "argon2@0.45.1": true,
+    "esbuild@0.28.2": true
   }
 }
